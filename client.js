@@ -59,7 +59,9 @@ ${this.bodyText}`
 			}
 			connection.on('data', data => {
 				parser.receive(data.toString())
-				// resolve(data.toString())
+				if (parser.isFinished) {
+					resolve(parser.response)
+				}
 				connection.end()
 			})
 			connection.on('error', err => {
@@ -89,6 +91,18 @@ class ResponseParser {
 		this.headerName = ''
 		this.headerValue = ''
 		this.bodyParser = null
+	}
+	get isFinished() {
+		return this.bodyParser && this.bodyParser.isFinished
+	}
+	get response() {
+		this.statusLine.match(/HTTP\/1.1 ([0-9]+) ([^]+)/)
+		return {
+			statusCode: RegExp.$1,
+			statusText: RegExp.$2,
+			headers: this.headers,
+			body: this.bodyParser.content.join('')
+		}
 	}
 	receive(string) {
 		let i = 0
@@ -136,10 +150,51 @@ class ResponseParser {
 }
 
 class TrunkedBodyParser {
-	constructor() {}
+	constructor() {
+		this.WAITING_LENGTH = 0
+		this.WAITING_LENGTH_LINE_END = 1
+		this.READING_TRUNK = 2
+		this.WAITING_NEW_LINE = 3
+		this.WAITING_NEW_LINE_END = 4
+
+		this.isFinished = false
+		this.length = 0
+		this.content = [] // 使用数组而不是字符串，因为在做加法运算时字符串性能可能有问题
+
+		this.current = this.WAITING_LENGTH
+	}
 	receiveChar(char) {
-		// 连续的\r\n就是一行，\r就是换到行首，\n就是换到行尾
-		console.log(JSON.stringify(char))
+		// 连续的\r\n就是一行，\r就是换到行首（回车），\n就是换到行尾（换行）
+		// JSON.stringify(char) 能够将换行正确显示\r\name
+		if (this.current === this.WAITING_LENGTH) {
+			if (char === '\r') {
+				if (this.length === 0) {
+					this.isFinished = true
+				}
+				this.current = this.WAITING_LENGTH_LINE_END
+			} else {
+				// this.length *= 10
+				this.length = parseInt(char, 16)
+				// this.length += Number(char)
+				// this.length += char.charCodeAt(0) - '0'.charCodeAt(0)
+			}
+		} else if (this.current === this.WAITING_LENGTH_LINE_END) {
+			if (char === '\n') this.current = this.READING_TRUNK
+		} else if (this.current === this.READING_TRUNK) {
+			if (char !== '\n' && char !== '\r') {
+				this.content.push(char)
+			}
+			this.length--
+			if (this.length === 0) {
+				this.current = this.WAITING_NEW_LINE
+			}
+		} else if (this.current === this.WAITING_NEW_LINE) {
+			if (char === '\r') {
+				this.current = this.WAITING_NEW_LINE_END
+			}
+		} else if (this.current === this.WAITING_NEW_LINE_END) {
+			if (char === '\n') this.current = this.WAITING_LENGTH // 一样的进入一个循环
+		}
 	}
 }
 
