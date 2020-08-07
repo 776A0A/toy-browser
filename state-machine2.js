@@ -1,8 +1,10 @@
+const EOF = Symbol('EOF')
+
 function match(str) {
 	let state = start
 	for (const s of str) {
 		state = state(s)
-		if (state === end) return true
+		if (state === EOF) return true
 	}
 	return false
 }
@@ -13,13 +15,9 @@ function start(s) {
 }
 function foundA(s) {
 	if (s === 'b') return foundB
-	return start(s) // 将输入移到下一个状态
-}
-function foundB(s) {
-	if (s === 'c') return foundC
 	return start(s)
 }
-function foundC(s) {
+function foundB(s) {
 	if (s === 'a') return foundA2
 	return start(s)
 }
@@ -28,12 +26,18 @@ function foundA2(s) {
 	return start(s)
 }
 function foundB2(s) {
-	if (s === 'x') return end
-	return foundB(s)
+	if (s === 'a') return foundA3
+	return start(s)
+}
+function foundA3(s) {
+	if (s === 'b') return foundB3
+	return start(s)
+}
+function foundB3(s) {
+	if (s === 'x') return EOF
+	return foundB2(s) // 跳回两个状态
 }
 
-function end() {}
-
-const str = 'abcabcabx'
+const str = 'ababababx'
 
 console.log(match(str))

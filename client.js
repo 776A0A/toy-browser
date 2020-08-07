@@ -1,4 +1,5 @@
 const net = require('net')
+const parser = require('./parser.js')
 
 class Request {
 	constructor(options) {
@@ -173,10 +174,8 @@ class TrunkedBodyParser {
 				}
 				this.current = this.WAITING_LENGTH_LINE_END
 			} else {
-				// this.length *= 10
+				// this.length *= 16
 				this.length = parseInt(char, 16)
-				// this.length += Number(char)
-				// this.length += char.charCodeAt(0) - '0'.charCodeAt(0)
 			}
 		} else if (this.current === this.WAITING_LENGTH_LINE_END) {
 			if (char === '\n') this.current = this.READING_TRUNK
