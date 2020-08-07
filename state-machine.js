@@ -16,14 +16,26 @@ function foundA(s) {
 	return start(s) // 将输入移到下一个状态
 }
 function foundB(s) {
-	if (s === 'c') return end
+	if (s === 'c') return foundC
 	return start(s)
+}
+function foundC(s) {
+	if (s === 'a') return foundA2
+	return start(s)
+}
+function foundA2(s) {
+	if (s === 'b') return foundB2
+	return start(s)
+}
+function foundB2(s) {
+	if (s === 'x') return end
+	return start
 }
 
 function end() {
 	return end
 }
 
-const str = 'joagoejadababcafef'
+const str = 'abcabx'
 
 console.log(match(str))
