@@ -29,13 +29,13 @@ function foundA2(s) {
 }
 function foundB2(s) {
 	if (s === 'x') return end
-	return start
+	return foundB(s)
 }
 
 function end() {
 	return end
 }
 
-const str = 'abcabx'
+const str = 'abcabcabx'
 
 console.log(match(str))
