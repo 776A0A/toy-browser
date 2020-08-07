@@ -13,17 +13,17 @@ function start(s) {
 }
 function foundA(s) {
 	if (s === 'b') return foundB
-	return start
+	return start(s) // 将输入移到下一个状态
 }
 function foundB(s) {
 	if (s === 'c') return end
-	return start
+	return start(s)
 }
 
 function end() {
 	return end
 }
 
-const str = 'joagoejadabcafef'
+const str = 'joagoejadababcafef'
 
 console.log(match(str))
