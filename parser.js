@@ -19,6 +19,7 @@ module.exports.parseHTML = function parseHTML(html) {
 		state = state(s)
 	}
 	state = state(EOF)
+	return stack
 }
 
 function emit(token) {
@@ -44,13 +45,14 @@ function emit(token) {
 		top.children.push(element)
 		element.parent = top
 
+		// 自封闭标签入栈后马上出栈，所以不用处理
 		if (!token.isSelfClosing) {
 			stack.push(element)
 		}
 		currentTextNode = null
 	} else if (token.type === 'endTag') {
 		if (top.tagName !== token.tagName) {
-			throw new Error("tag start end doesn't match")
+			// throw new Error("tag start end doesn't match")
 		} else {
 			stack.pop()
 		}
@@ -164,7 +166,7 @@ function attributeName(s) {
 	else if (s === '=') return beforeAttributeValue
 	else if (s === '<' || s === '"' || s === "'") throw Error()
 	else {
-		currentToken.name += s
+		currentAttribute.name += s
 		return attributeName
 	}
 }
@@ -211,7 +213,7 @@ function unquotedAttributeValue(s) {
 		return beforeAttributeName
 	} else if (s === '>') {
 		currentToken[currentAttribute.name] = currentAttribute.value
-		emit(currentAttribute)
+		emit(currentToken)
 		return data
 	} else if (
 		s === '"' ||
@@ -239,16 +241,4 @@ function beforeAttributeValue(s) {
 	else if (s === "'") return singleQuoteAttributeValue
 	else if (s === '>') throw Error()
 	else return unquotedAttributeValue(s)
-}
-
-function attributeValue(s) {
-	if (spaceRx.test(s)) return beforeAttributeName
-	else if (s === '>') {
-		emit()
-		return data
-	} else if (s === '"' || s === "'" || s === '=' || s === '<') throw Error()
-	else if (s === EOF) throw Error()
-	else {
-		return attributeValue
-	}
 }

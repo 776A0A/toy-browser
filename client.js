@@ -61,7 +61,9 @@ ${this.bodyText}`
 			connection.on('data', data => {
 				parser.receive(data.toString())
 				if (parser.isFinished) {
+					console.log('--------start--------\n', parser.response);
 					resolve(parser.response)
+					console.log('-----end------');
 				}
 				connection.end()
 			})
@@ -174,8 +176,8 @@ class TrunkedBodyParser {
 				}
 				this.current = this.WAITING_LENGTH_LINE_END
 			} else {
-				// this.length *= 16
-				this.length = parseInt(char, 16)
+				this.length *= 16 // 每一位乘16，就像十进制的时候每进一位就是乘10
+				this.length += parseInt(char, 16)
 			}
 		} else if (this.current === this.WAITING_LENGTH_LINE_END) {
 			if (char === '\n') this.current = this.READING_TRUNK
@@ -209,5 +211,5 @@ void (async function () {
 	})
 
 	const response = await request.send()
-	console.log(response)
+	const dom = parser.parseHTML(response.body)
 })()
