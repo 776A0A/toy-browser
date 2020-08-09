@@ -212,4 +212,5 @@ void (async function () {
 
 	const response = await request.send()
 	const dom = parser.parseHTML(response.body)
+	console.log(dom);
 })()

@@ -10,6 +10,10 @@ const server = http.createServer((req, res) => {
 `<html maaa=a>
 <head>
 	<style>
+		#my {
+			color: red;
+			width: 50px;
+		}
 		body {
 			font-size: 50px;
 		}
@@ -17,6 +21,7 @@ const server = http.createServer((req, res) => {
 </head>
 <body>
 	<p>123</p>
+	<div id="my">my</div>
 </body>
 </html>`
 	)

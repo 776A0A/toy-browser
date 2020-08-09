@@ -1,3 +1,5 @@
+const { addCSSRules, cssRules } = require('./css-parser')
+
 const EOF = Symbol('EOF')
 const lettersRx = /^[a-zA-Z]$/
 const spaceRx = /^[\t\n\f ]$/
@@ -5,6 +7,84 @@ const spaceRx = /^[\t\n\f ]$/
 let currentToken = null
 let currentAttribute = null
 let currentTextNode = null
+
+function computeCSS(element) {
+	/**
+	 * 在匹配css规则的时候，必须得到该元素所有的上级元素，才能判断规则是否匹配
+	 * 最先进行匹配的肯定是当前元素，如果当前元素都不匹配，那就不用匹配上级元素了
+	 * 所以，css选择器的匹配是从右到左，先匹配具体的，然后匹配上级
+	 * 如果在body内写style标签，那么很可能会使得原来的计算得到的css-ast完全无用
+	 */
+	const elements = stack.slice().reverse()
+
+	if (!element.computedStyle) element.computedStyle = {}
+
+	for (const rule of cssRules) {
+		const selectorParts = rule.selectors[0].split(' ').reverse()
+
+		if (!match(element, selectorParts[0])) continue
+
+		let matched
+		let i = 0,
+			j = 1
+		for (; i < elements.length; i++) {
+			if (match(elements[i], selectorParts[j])) j++
+		}
+
+		if (j >= selectorParts.length) matched = true
+
+		if (matched) {
+			const sp = specificity(rule.selectors[0])
+			const computedStyle = element.computedStyle
+			for (const d of rule.declarations) {
+				if (!computedStyle[d.property]) {
+					computedStyle[d.property] = {}
+				}
+				if (!computedStyle[d.property].specificity) {
+					computedStyle[d.property].value = d.value
+					computedStyle[d.property].specificity = sp
+				} else if (compare(computedStyle[d.property].specificity, sp) < 0) {
+					computedStyle[d.property].value = d.value
+					computedStyle[d.property].specificity = sp
+				}
+			}
+			console.log(computedStyle)
+		}
+	}
+}
+
+function compare(sp1, sp2) {
+	if (sp1[0] - sp2[0]) return sp1[0] - sp2[0]
+	if (sp1[1] - sp2[1]) return sp1[1] - sp2[1]
+	if (sp1[2] - sp2[2]) return sp1[2] - sp2[2]
+	return sp1[3] - sp2[3]
+}
+
+// 选择器优先级
+function specificity(selector) {
+	const p = [0, 0, 0, 0]
+	const selectorParts = selector.split(' ')
+	for (const s of selectorParts) {
+		if (p.charAt(0) === '#') p[1] += 1
+		else if (p.charAt(0) === '.') p[2] += 1
+		else p[3] += 1
+	}
+	return p
+}
+
+function match(elem, selector) {
+	if (!selector || !elem.attributes) return false
+
+	if (selector.charAt(0) === '#') {
+		const attr = elem.attributes.filter(a => a.name === 'id')
+		if (attr && attr.value === selector.replace('#', '')) return true
+	} else if (selector.charAt(0) === '.') {
+		const attr = elem.attributes.filter(a => a.name === 'class')
+		if (attr && attr.value === selector.replace('.', '')) return true
+	} else {
+		if (elem.tagName === selector) return true
+	}
+}
 
 const stack = [
 	{
@@ -42,6 +122,9 @@ function emit(token) {
 			}
 		}
 
+		// css规则的计算是在元素ast生成的时候就同步进行
+		computeCSS(element)
+
 		top.children.push(element)
 		element.parent = top
 
@@ -54,6 +137,9 @@ function emit(token) {
 		if (top.tagName !== token.tagName) {
 			// throw new Error("tag start end doesn't match")
 		} else {
+			if (top.tagName === 'style') {
+				addCSSRules(top.children[0].content)
+			}
 			stack.pop()
 		}
 		currentTextNode = null
