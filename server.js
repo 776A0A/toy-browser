@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
 `<html maaa=a>
 <head>
 	<style>
-		#my {
+		body #my {
 			color: red;
 			width: 50px;
 		}
